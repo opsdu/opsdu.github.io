@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="generator" content="TiddlyWiki" />
+<meta name="tiddlywiki-version" content="5.3.5" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="format-detection" content="telephone=no">
+<link id="faviconLink" rel="shortcut icon" href="favicon.ico">
+<link rel="stylesheet" href="static.css">
+<title>备份还原postgresql数据库脚本: 记录我的技术日常 — 一个在IT摸爬打滚的苦逼工作者</title>
+</head>
+<body class="tc-body">
+
+<section class="tc-story-river tc-static-story-river">
+<p><div class="tc-tiddler-frame tc-tiddler-view-frame tc-tiddler-exists  tc-tagged-%E8%84%9A%E6%9C%AC tc-tagged-%E6%95%B0%E6%8D%AE%E5%BA%93 tc-tagged-%E5%A4%87%E4%BB%BD tc-tagged-postgresql tc-tagged-opengauss" data-tags="脚本 数据库 备份 postgresql opengauss" data-tiddler-title="备份还原postgresql数据库脚本" role="article"><div class="tc-tiddler-title"><div class="tc-titlebar"><span class="tc-tiddler-controls"><button aria-expanded="false" aria-label="更多" class="tc-btn-invisible tc-btn-%24%3A%2Fcore%2Fui%2FButtons%2Fmore-tiddler-actions" title="更多操作"></button><span class=" tc-reveal" hidden="true"></span><button aria-label="编辑" class="tc-btn-invisible tc-btn-%24%3A%2Fcore%2Fui%2FButtons%2Fedit" title="编辑此条目"></button><button aria-label="关闭" class="tc-btn-invisible tc-btn-%24%3A%2Fcore%2Fui%2FButtons%2Fclose" title="关闭此条目"></button></span><span><h2 class="tc-title">备份还原postgresql数据库脚本</h2></span></div><div class="tc-tiddler-info tc-popup-handle tc-reveal" hidden="true"></div></div><div class="tc-reveal"></div><div class=" tc-reveal"><div class="tc-subtitle"><a class="tc-tiddlylink tc-tiddlylink-missing" href=".html"></a> </div></div><div class=" tc-reveal"><div class="tc-tags-wrapper"><span class="tc-tag-list-item" data-tag-title="opengauss"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">opengauss</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span><span class="tc-tag-list-item" data-tag-title="postgresql"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">postgresql</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span><span class="tc-tag-list-item" data-tag-title="备份"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">备份</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span><span class="tc-tag-list-item" data-tag-title="数据库"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">数据库</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span><span class="tc-tag-list-item" data-tag-title="脚本"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">脚本</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span></div></div><div class="tc-tiddler-body tc-reveal"><pre class="hljs"><code class="bash hljs"><span class="hljs-meta">#!/bin/bash</span>
+<span class="hljs-built_in">source</span> ~/.bashrc
+<span class="hljs-comment"># 设置变量</span>
+BASE_DIR=<span class="hljs-string">&quot;/data/vastbase_data_backup&quot;</span>
+DATE=$(<span class="hljs-built_in">date</span> +<span class="hljs-string">&#x27;%Y-%m-%d&#x27;</span>)
+BACKUP_DIR=<span class="hljs-string">&quot;<span class="hljs-variable">${BASE_DIR}</span>/<span class="hljs-variable">${DATE}</span>&quot;</span>
+USER=<span class="hljs-string">&quot;postgres&quot;</span>
+HOST=<span class="hljs-string">&quot;localhost&quot;</span>
+PORT=<span class="hljs-string">&quot;5432&quot;</span>
+
+<span class="hljs-comment"># 创建备份目录</span>
+<span class="hljs-built_in">mkdir</span> -p <span class="hljs-string">&quot;<span class="hljs-variable">$BACKUP_DIR</span>&quot;</span>
+
+<span class="hljs-comment"># 执行清除cloud_dock_real_data表5天前的数据</span>
+psql -h <span class="hljs-variable">$HOST</span> -p <span class="hljs-variable">$PORT</span> -U <span class="hljs-variable">$USER</span> -d fssd_uav_prod -f query_and_delete.sql -W <span class="hljs-string">&quot;pasword&quot;</span>
+
+<span class="hljs-comment"># 移动 CSV 文件到备份目录</span>
+<span class="hljs-built_in">mv</span> /tmp/cloud_dock_real_data_drop_5days_before.csv <span class="hljs-string">&quot;<span class="hljs-variable">$BACKUP_DIR</span>/cloud_dock_real_data_drop_5days_before.log&quot;</span>
+
+<span class="hljs-comment"># 清理临时文件</span>
+<span class="hljs-built_in">rm</span> -f /tmp/cloud_dock_real_data_drop_5days_before.csv
+
+<span class="hljs-comment"># 获取数据库列表</span>
+DATABASES=$(psql -h <span class="hljs-variable">$HOST</span> -p <span class="hljs-variable">$PORT</span> -U <span class="hljs-variable">$USER</span> -d vastbase -t -c <span class="hljs-string">&quot;SELECT datname FROM pg_database WHERE datname LIKE &#x27;%prod%&#x27; AND datistemplate = false;&quot;</span> -W <span class="hljs-string">&quot;pasword&quot;</span>)
+
+<span class="hljs-comment"># 循环备份每个数据库</span>
+<span class="hljs-keyword">for</span> DB <span class="hljs-keyword">in</span> <span class="hljs-variable">$DATABASES</span>; <span class="hljs-keyword">do</span>
+  DB=$(<span class="hljs-built_in">echo</span> <span class="hljs-variable">$DB</span> | xargs) <span class="hljs-comment"># 去除空格</span>
+  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;正在导出数据库：<span class="hljs-variable">$DB</span>&quot;</span>
+
+  <span class="hljs-comment"># 执行备份</span>
+  pg_dump -h <span class="hljs-variable">$HOST</span> -p <span class="hljs-variable">$PORT</span> -U <span class="hljs-variable">$USER</span> -F c -b -v -W <span class="hljs-string">&quot;pasword&quot;</span> -f <span class="hljs-string">&quot;<span class="hljs-variable">${BACKUP_DIR}</span>/<span class="hljs-variable">${DB}</span>.<span class="hljs-variable">${DATE}</span>.backup&quot;</span> <span class="hljs-variable">$DB</span>
+
+  <span class="hljs-comment"># 检查备份是否成功</span>
+  <span class="hljs-keyword">if</span> [ $? -eq 0 ]; <span class="hljs-keyword">then</span>
+    <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;数据库 <span class="hljs-variable">$DB</span> 导出成功&quot;</span> &gt;&gt; <span class="hljs-string">&quot;<span class="hljs-variable">${BACKUP_DIR}</span>/backup.log&quot;</span>
+  <span class="hljs-keyword">else</span>
+    <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;数据库 <span class="hljs-variable">$DB</span> 导出失败&quot;</span> &gt;&gt; <span class="hljs-string">&quot;<span class="hljs-variable">${BACKUP_DIR}</span>/backup.log&quot;</span>
+  <span class="hljs-keyword">fi</span>
+<span class="hljs-keyword">done</span>
+
+</code></pre><pre class="hljs"><code class="bash hljs"><span class="hljs-meta">#!/bin/bash</span>
+
+<span class="hljs-comment"># 数据库连接信息</span>
+DB_USER=<span class="hljs-string">&quot;postgreq&quot;</span>
+DB_HOST=<span class="hljs-string">&quot;127.0.0.1&quot;</span>
+DB_PORT=<span class="hljs-string">&quot;5432&quot;</span>
+BACKUP_DIR=<span class="hljs-string">&quot;/backup_dir&quot;</span>
+
+<span class="hljs-comment"># 提示用户输入需要还原数据库的日期</span>
+<span class="hljs-built_in">read</span> -p <span class="hljs-string">&quot;请输入需要还原数据库的日期 (格式: YYYY-MM-DD): &quot;</span> datetime
+
+<span class="hljs-comment"># 检查备份目录是否存在</span>
+BACKUP_PATH=<span class="hljs-string">&quot;<span class="hljs-variable">$BACKUP_DIR</span>/<span class="hljs-variable">$datetime</span>&quot;</span>
+<span class="hljs-keyword">if</span> [ ! -d <span class="hljs-string">&quot;<span class="hljs-variable">$BACKUP_PATH</span>&quot;</span> ]; <span class="hljs-keyword">then</span>
+    <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;没有当前日期的备份文件。&quot;</span>
+    <span class="hljs-built_in">exit</span> 1
+<span class="hljs-keyword">fi</span>
+
+<span class="hljs-comment"># 询问是否要还原目录下的所有数据库</span>
+<span class="hljs-built_in">read</span> -p <span class="hljs-string">&quot;是否要还原目录下的所有数据库？(y/n): &quot;</span> restore_all
+
+<span class="hljs-keyword">if</span> [[ <span class="hljs-string">&quot;<span class="hljs-variable">$restore_all</span>&quot;</span> =~ ^[Yy]$ ]]; <span class="hljs-keyword">then</span>
+    <span class="hljs-comment"># 还原所有数据库</span>
+    <span class="hljs-keyword">for</span> backup_file <span class="hljs-keyword">in</span> <span class="hljs-string">&quot;<span class="hljs-variable">$BACKUP_PATH</span>&quot;</span>/*.backup; <span class="hljs-keyword">do</span>
+        <span class="hljs-comment"># 提取文件名</span>
+        filename=<span class="hljs-string">&quot;<span class="hljs-variable">${backup_file##*/}</span>&quot;</span>
+        <span class="hljs-comment"># 提取数据库名</span>
+        db_name=<span class="hljs-string">&quot;<span class="hljs-variable">${filename%.*}</span>&quot;</span>
+        db_name=<span class="hljs-string">&quot;<span class="hljs-variable">${db_name%.*}</span>&quot;</span>
+        <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;还原数据库 <span class="hljs-variable">$db_name</span>...&quot;</span>
+        pg_restore -h <span class="hljs-string">&quot;<span class="hljs-variable">$DB_HOST</span>&quot;</span> -p <span class="hljs-string">&quot;<span class="hljs-variable">$DB_PORT</span>&quot;</span> -U <span class="hljs-string">&quot;<span class="hljs-variable">$DB_USER</span>&quot;</span> -W <span class="hljs-string">&quot;password&quot;</span> -d <span class="hljs-string">&quot;<span class="hljs-variable">$db_name</span>&quot;</span> <span class="hljs-string">&quot;<span class="hljs-variable">$backup_file</span>&quot;</span>
+        <span class="hljs-keyword">if</span> [ $? -ne 0 ]; <span class="hljs-keyword">then</span>
+            <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;还原数据库 <span class="hljs-variable">$db_name</span> 失败。&quot;</span>
+            <span class="hljs-built_in">exit</span> 1
+        <span class="hljs-keyword">fi</span>
+    <span class="hljs-keyword">done</span>
+<span class="hljs-keyword">else</span>
+    <span class="hljs-comment"># 提示输入需要还原的数据库</span>
+    <span class="hljs-built_in">read</span> -p <span class="hljs-string">&quot;请输入需要还原的数据库名称: &quot;</span> db_name
+    backup_file=<span class="hljs-string">&quot;<span class="hljs-variable">$BACKUP_PATH</span>/<span class="hljs-variable">$db_name</span>.<span class="hljs-variable">$datetime</span>.backup&quot;</span>
+    <span class="hljs-keyword">if</span> [ ! -f <span class="hljs-string">&quot;<span class="hljs-variable">$backup_file</span>&quot;</span> ]; <span class="hljs-keyword">then</span>
+        <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;没有找到数据库 <span class="hljs-variable">$db_name</span> 的备份文件。&quot;</span>
+        <span class="hljs-built_in">exit</span> 1
+    <span class="hljs-keyword">fi</span>
+    <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;还原数据库 <span class="hljs-variable">$db_name</span>...&quot;</span>
+    pg_restore -h <span class="hljs-string">&quot;<span class="hljs-variable">$DB_HOST</span>&quot;</span> -p <span class="hljs-string">&quot;<span class="hljs-variable">$DB_PORT</span>&quot;</span> -U <span class="hljs-string">&quot;<span class="hljs-variable">$DB_USER</span>&quot;</span> -W <span class="hljs-string">&quot;password&quot;</span> -d <span class="hljs-string">&quot;<span class="hljs-variable">$db_name</span>&quot;</span> <span class="hljs-string">&quot;<span class="hljs-variable">$backup_file</span>&quot;</span>
+    <span class="hljs-keyword">if</span> [ $? -ne 0 ]; <span class="hljs-keyword">then</span>
+        <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;还原数据库 <span class="hljs-variable">$db_name</span> 失败。&quot;</span>
+        <span class="hljs-built_in">exit</span> 1
+    <span class="hljs-keyword">fi</span>
+<span class="hljs-keyword">fi</span>
+
+<span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;数据库还原完成。&quot;</span></code></pre></div>
+</div></p>
+</section>
+</body>
+</html>
+

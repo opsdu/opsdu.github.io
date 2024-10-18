@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="generator" content="TiddlyWiki" />
+<meta name="tiddlywiki-version" content="5.3.5" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="format-detection" content="telephone=no">
+<link id="faviconLink" rel="shortcut icon" href="favicon.ico">
+<link rel="stylesheet" href="static.css">
+<title>opengauss数据库的sysctl.conf设置若干系统参数: 记录我的技术日常 — 一个在IT摸爬打滚的苦逼工作者</title>
+</head>
+<body class="tc-body">
+
+<section class="tc-story-river tc-static-story-river">
+<p><div class="tc-tiddler-frame tc-tiddler-view-frame tc-tiddler-exists  tc-tagged-%E6%95%B0%E6%8D%AE%E5%BA%93 tc-tagged-opengauss tc-tagged-sysctl.conf" data-tags="数据库 opengauss sysctl.conf" data-tiddler-title="opengauss数据库的sysctl.conf设置若干系统参数" role="article"><div class="tc-tiddler-title"><div class="tc-titlebar"><span class="tc-tiddler-controls"><button aria-expanded="false" aria-label="更多" class="tc-btn-invisible tc-btn-%24%3A%2Fcore%2Fui%2FButtons%2Fmore-tiddler-actions" title="更多操作"></button><span class=" tc-reveal" hidden="true"></span><button aria-label="编辑" class="tc-btn-invisible tc-btn-%24%3A%2Fcore%2Fui%2FButtons%2Fedit" title="编辑此条目"></button><button aria-label="关闭" class="tc-btn-invisible tc-btn-%24%3A%2Fcore%2Fui%2FButtons%2Fclose" title="关闭此条目"></button></span><span><h2 class="tc-title">opengauss数据库的sysctl.conf设置若干系统参数</h2></span></div><div class="tc-tiddler-info tc-popup-handle tc-reveal" hidden="true"></div></div><div class="tc-reveal"></div><div class=" tc-reveal"><div class="tc-subtitle"><a class="tc-tiddlylink tc-tiddlylink-missing" href="fxz.html">fxz</a> 2024年10月17日 10:08</div></div><div class=" tc-reveal"><div class="tc-tags-wrapper"><span class="tc-tag-list-item" data-tag-title="opengauss"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">opengauss</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span><span class="tc-tag-list-item" data-tag-title="sysctl.conf"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">sysctl.conf</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span><span class="tc-tag-list-item" data-tag-title="数据库"><span aria-expanded="false" class="tc-tag-label tc-btn-invisible" draggable="true" style="fill:#333333;color:#333333;"><span class="tc-tag-missing">数据库</span></span><span class="tc-drop-down tc-reveal" hidden="true"></span></span></div></div><div class="tc-tiddler-body tc-reveal"><p>计算内核参数的值：</p><p>echo "kernel.sem= <code>cat /proc/sys/kernel/sem</code>" &amp;&amp; cat /proc/meminfo|grep MemTotal|awk {'print $2'*1024*0.8/$(getconf PAGE_SIZE)}|awk '{printf "kernel.shmall=%d\n",$1}' &amp;&amp; cat /proc/meminfo|grep MemTotal| awk '{printf "kernel.shmmax=%d\n",$2*1024*0.8}' &amp;&amp; echo "kernel.shmmni =<code>cat /proc/sys/kernel/shmmni</code>"</p><p>编辑 /etc/sysctl.conf ，添加如下信息。shmall、shmmax直接取上一步计算的值，shmmni、sem若计算值大于下方样例，则可#注释下方这两行参数，保持原有默认值即可：
+fs.aio-max-nr=1048576
+fs.file-max= 76724600
+kernel.sem = 250 64000 250 1024
+kernel.shmall = 3643361024         # pages,  80% MEM or higher
+kernel.shmmax = 86641802241024    # bytes, 80% MEM or higher
+kernel.shmmni = 8192
+net.core.netdev_max_backlog = 10000
+net.core.rmem_default = 262144
+net.core.rmem_max = 4194304
+net.core.wmem_default = 262144
+net.core.wmem_max = 4194304
+net.core.somaxconn = 4096
+net.ipv4.tcp_fin_timeout = 5
+vm.overcommit_memory = 0
+vm.swappiness = 10
+net.ipv4.ip_local_port_range = 40000 65535
+fs.nr_open = 20480000
+kernel.core_pattern = /data/core_pattern/core-%e-%p-%t</p><p>执行以下命令，使配置生效（注意若部分参数报错，可酌情修改参数配置）：
+sysctl -p</p></div>
+</div></p>
+</section>
+</body>
+</html>
+
